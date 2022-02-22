@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: ivory;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+
+      function Ball(engine, xPos, yPos, xVel, yVel){
+        var ctx = engine.data.context
+        var ball = this;
+        ball.x = xPos;
+        ball.y = yPos;
+        ball.xV = xVel
+        ball.yV = yVel
+        ball.radius = 10;
+        ball.onStart = function(){};
+        ball.beforeStep = function(){
+          ball.x += ball.xV
+          ball.y += ball.yV
+        };
+        ball.onStep = function(){
+          console.log('test')
+          console.log(engine)
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+        ball.afterStep = function(){};
+      }
+
+      function World(engine){
+        var world = this;
+        world.objects = [];
+        world.engine = engine;
+        world.onStart = function(){
+          world.objects.forEach((object, i) => {
+            object.onStart();
+          });
+        }
+        world.beforeStep = function(){
+          world.objects.forEach((object, i) => {
+            object.beforeStep();
+          });
+        }
+        world.onStep = function(){
+          world.objects.forEach((object, i) => {
+            object.onStep();
+          });
+        }
+        world.afterStep = function(){
+          world.objects.forEach((object, i) => {
+            object.afterStep();
+          });
+        }
+      }
+
+      function Engine(){
+
+        var engine = this;
+
+
+        engine.data = {screenWidth: 0, screenHeight: 0, objects: {}};
+
+        engine.debug = 1;
+
+        engine.onStart = function(){
+          var canvas = document.getElementById("canvas");
+          var ctx = canvas.getContext("2d");
+          engine.data.canvas = canvas;
+          engine.data.context = ctx;
+
+          var canvasOffset = $("#canvas").offset();
+          var offsetX = canvasOffset.left;
+          var offsetY = canvasOffset.top;
+
+          engine.world = new World()
+          engine.world.objects.push(new Ball(this, 10, 10, 10, 10));
+
+          engine.onScreenSizeChange();
+          engine.world.onStart(this);
+        }
+
+        ///////////////////////////////
+        engine.beforeStep = function(){engine.world.beforeStep();}
+
+        engine.onStep = function(){engine.world.onStep();}
+
+        engine.afterStep = function(){engine.world.afterStep();}
+        ///////////////////////////////
+
+        engine.onScreenSizeChange = function(){
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          engine.data.screenWidth = window.innerWidth;
+          engine.data.screenHeight = window.innerHeight;
+          engine.devlog(canvas.width, canvas.height)
+        }
+
+        engine.devlog = function(){
+          if(engine.debug){
+            var text = "";
+            for (var i = 0; i < arguments.length; i++) {
+              text += (arguments[i] +" ");
+            };
+            console.log(text)
+          }
+        }
+
+      }
+
+      $(document).ready(function(){
+        var e = new Engine();
+        e.onStart();
+        setInterval(function () {
+          e.beforeStep();
+          e.onStep();
+          e.afterStep();
+        }, 100);
+        $(window).resize(function(){
+          e.onScreenSizeChange();
+        });
+        window.engine = e;
+      })
+
+    </script>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+</html>

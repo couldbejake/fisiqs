@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: ivory;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+
+      function Ball(engine, params = {x: 0, y: 0, xV: 0, yV: 0, rgb: 'red'}){
+        var ctx = engine.data.context
+        var ball = this;
+        ball.x = params.x;
+        ball.y = params.y;
+        ball.xV = params.xV;
+        ball.yV = params.yV;
+        ball.xA = 0
+        ball.yA = 0.2
+        ball.radius = 50;
+        ball.airRes = 0.1
+        ball.col = params.rgb
+        ball.onStart = function(){};
+        ball.beforeStep = function(){
+          ball.x += ball.xV
+          ball.y += ball.yV
+          ball.xV += ball.xA
+          ball.yV += ball.yA
+
+          //ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+        ball.onStep = function(){
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+          ctx.fillStyle = ball.col;
+          ctx.fill()
+          ctx.stroke();
+        }
+        ball.afterStep = function(){
+          if(ball.y > engine.data.screenHeight - ball.radius){
+            ball.yV = ball.yV * -1
+          }
+          if(ball.x > engine.data.screenWidth - ball.radius){
+            ball.xV = ball.xV * -1
+          }
+          if(ball.x < 0 + ball.radius){
+            ball.xV = ball.xV * -1
+          }
+          if(ball.yV > 0){
+            ball.yV -= ball.airRes
+          } else {
+            ball.yV += ball.airRes
+          }
+          ball.friction = 0.01;
+          if(ball.xV > 0){
+            ball.xV -= ball.friction
+          } else {
+            ball.xV += ball.friction
+          }
+
+        };
+      }
+
+      function World(engine){
+        var world = this;
+        world.objects = [];
+        world.engine = engine;
+        world.onStart = function(){
+          world.objects.forEach((object, i) => {
+            object.onStart();
+          });
+        }
+        world.beforeStep = function(){
+          world.objects.forEach((object, i) => {
+            object.beforeStep();
+          });
+        }
+        world.onStep = function(){
+          world.objects.forEach((object, i) => {
+            object.onStep();
+          });
+        }
+        world.afterStep = function(){
+          world.objects.forEach((object, i) => {
+            object.afterStep();
+          });
+        }
+      }
+
+      function Engine(){
+
+        var engine = this;
+
+
+        engine.data = {screenWidth: 0, screenHeight: 0, objects: {}};
+
+        engine.debug = 1;
+
+        engine.world = null;
+
+        engine.onStart = function(){
+          var canvas = document.getElementById("canvas");
+          var ctx = canvas.getContext("2d");
+          engine.data.canvas = canvas;
+          engine.data.context = ctx;
+
+          var canvasOffset = $("#canvas").offset();
+          var offsetX = canvasOffset.left;
+          var offsetY = canvasOffset.top;
+
+          engine.world = new World()
+
+          engine.onScreenSizeChange();
+          engine.world.onStart(this);
+        }
+
+        ///////////////////////////////
+        engine.beforeStep = function(){engine.world.beforeStep();}
+
+        engine.onStep = function(){engine.world.onStep();}
+
+        engine.afterStep = function(){engine.world.afterStep();}
+        ///////////////////////////////
+
+        engine.onScreenSizeChange = function(){
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          engine.data.screenWidth = window.innerWidth;
+          engine.data.screenHeight = window.innerHeight;
+          engine.devlog(canvas.width, canvas.height)
+        }
+
+        engine.devlog = function(){
+          if(engine.debug){
+            var text = "";
+            for (var i = 0; i < arguments.length; i++) {
+              text += (arguments[i] +" ");
+            };
+            console.log(text)
+          }
+        }
+
+        engine.spawnCircle = function(x, y, xVel, yVel, col){
+          var ball = new Ball(this, {x: x, y: y, xV: xVel, yV: yVel, rgb: col});
+          engine.world.objects.push(ball)
+        }
+      }
+
+      $(document).ready(function(){
+        var e = new Engine();
+        e.onStart();
+        setInterval(function () {
+          e.beforeStep();
+          e.onStep();
+          e.afterStep();
+        }, 5);
+        $(window).resize(function(){
+          e.onScreenSizeChange();
+        });
+        window.engine = e;
+
+        setInterval(function () {
+          e.spawnCircle(
+            Math.random() * 100 + 100,
+            Math.random() * 100,
+            Math.random() * 10,
+            Math.random() * 10,
+            'rgb(' + (Math.random() * 255) + ', ' + (Math.random() * 255) + ', ' + (Math.random() * 255) + ')'
+          )
+        }, 100);
+
+        for (var i = 0; i < 10; i++) {
+
+
+
+
+        }
+      })
+
+    </script>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+</html>
